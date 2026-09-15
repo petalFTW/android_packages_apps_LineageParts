@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.UserHandle;
+import android.provider.Settings;
 import android.util.ArraySet;
 
 import androidx.preference.ListPreference;
@@ -37,6 +38,7 @@ public class TouchscreenGestureSettings extends SettingsPreferenceFragment
     private static final String KEY_TOUCHSCREEN_GESTURE_HAPTIC_FEEDBACK =
             "touchscreen_gesture_haptic_feedback";
     private static final String TOUCHSCREEN_GESTURE_TITLE = KEY_TOUCHSCREEN_GESTURE + "_%s_title";
+    private static final String DOUBLE_TAP_GESTURE = "Double tap";
 
     private TouchscreenGesture[] mTouchscreenGestures;
 
@@ -56,6 +58,10 @@ public class TouchscreenGestureSettings extends SettingsPreferenceFragment
         mTouchscreenGestures = manager.getTouchscreenGestures();
         final int[] actions = getDefaultGestureActions(requireContext(), mTouchscreenGestures);
         for (final TouchscreenGesture gesture : mTouchscreenGestures) {
+            // double tap belongs to Settings > Display "Tap to wake", not this list
+            if (isDoubleTapGesture(gesture)) {
+                continue;
+            }
             getPreferenceScreen().addPreference(new TouchscreenGesturePreference(
                     getContext(), gesture, actions[gesture.id]));
         }
@@ -152,10 +158,34 @@ public class TouchscreenGestureSettings extends SettingsPreferenceFragment
         final TouchscreenGesture[] gestures = manager.getTouchscreenGestures();
         final int[] actionList = buildActionList(context, gestures);
         for (final TouchscreenGesture gesture : gestures) {
+            if (isDoubleTapGesture(gesture)) {
+                continue;
+            }
             manager.setTouchscreenGestureEnabled(gesture, actionList[gesture.id] > 0);
         }
 
+        // double tap follows the dead Display switch, so it survives a reboot
+        setDoubleTapWakeEnabled(manager, gestures, Settings.Secure.getInt(
+                context.getContentResolver(), Settings.Secure.DOUBLE_TAP_TO_WAKE, 0) != 0);
+
         sendUpdateBroadcast(context, gestures);
+    }
+
+    private static boolean isDoubleTapGesture(final TouchscreenGesture gesture) {
+        return DOUBLE_TAP_GESTURE.equals(gesture.name);
+    }
+
+    private static void setDoubleTapWakeEnabled(final LineageHardwareManager manager,
+            final TouchscreenGesture[] gestures, final boolean enabled) {
+        if (gestures == null) {
+            return;
+        }
+        for (final TouchscreenGesture gesture : gestures) {
+            if (isDoubleTapGesture(gesture)) {
+                manager.setTouchscreenGestureEnabled(gesture, enabled);
+                return;
+            }
+        }
     }
 
     private static boolean isTouchscreenGesturesSupported(final Context context) {
