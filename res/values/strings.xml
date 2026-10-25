@@ -599,6 +599,8 @@
     <string name="charging_sounds_ringtone_silent">Silent</string>
     <string name="charging_sounds_notification_category_title">Notification sounds</string>
     <string name="wired_charging_sounds_title">Wired charging</string>
+    <string name="charging_stopped_sound_title">Unplug sound</string>
+    <string name="charging_stopped_sound_default">Same as charging sound</string>
     <string name="wireless_charging_sounds_title">Wireless charging</string>
 
     <!-- Gestures: Touchscreen gestures -->
@@ -649,9 +651,6 @@
     <string name="touchscreen_gesture_action_volume_down">Lower media volume</string>
     <string name="touchscreen_gesture_action_volume_up">Raise media volume</string>
     <string name="touchscreen_gesture_action_ambient_display">Show ambient display</string>
-
-    <!-- Egg: Title for the easter egg activity -->
-    <string name="egg_title" translatable="false">LineageOS Easter Egg</string>
 
     <!-- Trust interface -->
     <string name="trust_title" translatable="false">@*lineageos.platform:string/trust_feature_name</string>

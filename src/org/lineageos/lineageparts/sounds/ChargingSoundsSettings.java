@@ -40,6 +40,8 @@ public class ChargingSoundsSettings
     private static final String KEY_CHARGING_VIBRATION_ENABLED = "charging_vibration_enabled";
     private static final String KEY_WIRED_CHARGING_SOUNDS = "charging_sounds";
     private static final String KEY_WIRELESS_CHARGING_SOUNDS = "wireless_charging_sounds";
+    private static final String KEY_CHARGING_STOPPED_SOUND = "charging_stopped_sound";
+    private static final String SYSTEM_CHARGING_STOPPED_SOUND = "petal_charging_stopped_sound";
 
     // Used for power notification uri string if set to silent
     private static final String RINGTONE_SILENT_URI_STRING = "silent";
@@ -52,9 +54,11 @@ public class ChargingSoundsSettings
     // Request code for charging notification ringtone picker
     private static final int REQUEST_CODE_WIRED_CHARGING_SOUND = 1;
     private static final int REQUEST_CODE_WIRELESS_CHARGING_SOUND = 2;
+    private static final int REQUEST_CODE_CHARGING_STOPPED_SOUND = 3;
 
     private Preference mWiredChargingSounds;
     private Preference mWirelessChargingSounds;
+    private Preference mChargingStoppedSound;
 
     private Uri mDefaultWiredChargingSoundUri;
     private Uri mDefaultWirelessChargingSoundUri;
@@ -75,6 +79,10 @@ public class ChargingSoundsSettings
                                 Uri.class);
 
                         if (uri == null) {
+                            if (mRequestCode == REQUEST_CODE_CHARGING_STOPPED_SOUND) {
+                                updateChargingStoppedSound(RINGTONE_SILENT_URI_STRING, true);
+                                return;
+                            }
                             updateChargingSounds(RINGTONE_SILENT_URI_STRING,
                                     mRequestCode == REQUEST_CODE_WIRELESS_CHARGING_SOUND);
                             return;
@@ -95,8 +103,13 @@ public class ChargingSoundsSettings
                             return;
                         }
 
-                        updateChargingSounds(uri.toString(),
-                                mRequestCode == REQUEST_CODE_WIRELESS_CHARGING_SOUND);
+                        if (mRequestCode == REQUEST_CODE_CHARGING_STOPPED_SOUND) {
+                            updateChargingStoppedSound(uri.equals(mDefaultWiredChargingSoundUri)
+                                    ? null : uri.toString(), true);
+                        } else {
+                            updateChargingSounds(uri.toString(),
+                                    mRequestCode == REQUEST_CODE_WIRELESS_CHARGING_SOUND);
+                        }
             });
 
     private boolean isSupportedMimeType(String mimeType) {
@@ -116,6 +129,7 @@ public class ChargingSoundsSettings
 
         mWiredChargingSounds = findPreference(KEY_WIRED_CHARGING_SOUNDS);
         mWirelessChargingSounds = findPreference(KEY_WIRELESS_CHARGING_SOUNDS);
+        mChargingStoppedSound = findPreference(KEY_CHARGING_STOPPED_SOUND);
     }
 
     @Override
@@ -136,6 +150,8 @@ public class ChargingSoundsSettings
 
         updateChargingSounds(currentWiredChargingSound, false /* wireless */);
         updateChargingSounds(currentWirelessChargingSound, true /* wireless */);
+        updateChargingStoppedSound(Settings.System.getString(getContentResolver(),
+                SYSTEM_CHARGING_STOPPED_SOUND), false);
     }
 
     private Uri audioFileToUri(@NonNull Context context, String audioFile) {
@@ -200,6 +216,21 @@ public class ChargingSoundsSettings
         }
     }
 
+    private void updateChargingStoppedSound(String sound, boolean save) {
+        final String label;
+        if (sound == null) {
+            label = getString(R.string.charging_stopped_sound_default);
+        } else if (RINGTONE_SILENT_URI_STRING.equals(sound)) {
+            label = getString(R.string.charging_sounds_ringtone_silent);
+        } else {
+            Ringtone ringtone = RingtoneManager.getRingtone(getActivity(), Uri.parse(sound));
+            label = ringtone != null ? ringtone.getTitle(getActivity()) : "";
+        }
+        mChargingStoppedSound.setSummary(label);
+        if (save) Settings.System.putString(getContentResolver(),
+                SYSTEM_CHARGING_STOPPED_SOUND, sound);
+    }
+
     @Override
     public boolean onPreferenceTreeClick(Preference preference) {
         if (preference == mWiredChargingSounds) {
@@ -210,6 +241,10 @@ public class ChargingSoundsSettings
             launchNotificationSoundPicker(REQUEST_CODE_WIRELESS_CHARGING_SOUND,
                     Settings.Global.getString(getContentResolver(),
                             Settings.Global.WIRELESS_CHARGING_STARTED_SOUND));
+        } else if (preference == mChargingStoppedSound) {
+            launchNotificationSoundPicker(REQUEST_CODE_CHARGING_STOPPED_SOUND,
+                    Settings.System.getString(getContentResolver(),
+                            SYSTEM_CHARGING_STOPPED_SOUND));
         }
         return super.onPreferenceTreeClick(preference);
     }
@@ -229,6 +264,11 @@ public class ChargingSoundsSettings
                     getString(R.string.wireless_charging_sounds_title));
             intent.putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI,
                     mDefaultWirelessChargingSoundUri);
+        } else {
+            intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE,
+                    getString(R.string.charging_stopped_sound_title));
+            intent.putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI,
+                    mDefaultWiredChargingSoundUri);
         }
         if (toneUriString != null && !toneUriString.equals(RINGTONE_SILENT_URI_STRING)) {
             Uri uri = Uri.parse(toneUriString);

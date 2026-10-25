@@ -35,6 +35,12 @@
             android:dependency="charging_sounds_enabled"
             android:persistent="false" />
 
+        <Preference
+            android:key="charging_stopped_sound"
+            android:title="@string/charging_stopped_sound_title"
+            android:dependency="charging_sounds_enabled"
+            android:persistent="false" />
+
         <lineageos.preference.SelfRemovingPreference
             android:key="wireless_charging_sounds"
             android:title="@string/wireless_charging_sounds_title"
